@@ -1,6 +1,11 @@
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
+const session = require('express-session')
+const KnexSessionStore = require('connect-session-knex')(session)
+const usersRouter = require('./users/users-router');
+const authRouter = require('./auth/auth-router')
+const db = require("../data/db-config");
 
 /**
   Do what needs to be done to support sessions with the `express-session` package!
@@ -11,7 +16,7 @@ const cors = require("cors");
   Users that do authenticate should have a session persisted on the server,
   and a cookie set on the client. The name of the cookie should be "chocolatechip".
 
-  The session can be persisted in memory (would not be adecuate for production)
+  The session can be persisted in memory (would not be adequate for production)
   or you can use a session store like `connect-session-knex`.
  */
 
@@ -19,7 +24,21 @@ const server = express();
 
 server.use(helmet());
 server.use(express.json());
+
+server.use(session({
+  resave: false,
+  saveUninitialized: false,
+  secret: "Keep it secret, keep it safe.",
+  name: "chocolatechip",
+  store: new KnexSessionStore({
+      knex: db,
+      createTable: true,
+  })
+}))
+
 server.use(cors());
+server.use("/api/users" , usersRouter)
+server.use('/api/auth', authRouter)
 
 server.get("/", (req, res) => {
   res.json({ api: "up" });
